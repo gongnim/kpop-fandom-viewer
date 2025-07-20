@@ -3,7 +3,7 @@ import requests, pandas as pd
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 
-YOUTUBE_API_KEY = "AIzaSyCb8lNcjZ5yjhhi49-WuPTE0fE3obCFhpU"
+YOUTUBE_API_KEY = "AIzaSyAUsjVCSRBSr1EIIwdqgIyyj4CstPvQZl4"
 
 # 필요하면 ID 테이블을 늘려두세요
 YT_CHANNEL = {
