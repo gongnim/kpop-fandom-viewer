@@ -53,6 +53,16 @@ def spotify_listeners(name):
         snippet = r.text[idx-100:idx+100]
         return BeautifulSoup(snippet, "lxml").text.strip()
     return "N/A"
+    
+def twitter_link(username):
+    return f"https://twitter.com/{username}" if username else "N/A"
+
+def instagram_link(username):
+    return f"https://instagram.com/{username}" if username else "N/A"
+
+def spotify_link(artist_name):
+    q = artist_name.replace(" ", "%20")
+    return f"https://open.spotify.com/search/{q}"
 
 # 기존 코드에 추가 또는 교체
 
@@ -94,8 +104,8 @@ def collect(artist_list):
         else:
             row.update({"YouTube Subs": "N/A", "YouTube Views": "N/A", "YouTube Videos": "N/A"})
             
-        row["TWITTER Followers"] = twitter_followers(tid) if tid else "N/A"
-        row["INSTART Followers"] = insta_followers(iid) if iid else "N/A"
-        row["Spotify Listeners"] = spotify_listeners(a)
+        row["TWITTER Followers"] = twitter_link(tid) # twitter_followers(tid) if tid else "N/A"
+        row["INSTAR Followers"] = instagram_link(iid) # insta_followers(iid) if iid else "N/A"
+        row["Spotify Listeners"] = spotify_link(a) # spotify_listeners(a)
         rows.append(row)
     return pd.DataFrame(rows)
