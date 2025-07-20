@@ -7,7 +7,7 @@ YOUTUBE_API_KEY = "AIzaSyC15OEAKYC9Oq01osNqW8a_1bQd535Xnxs"
 
 # 필요하면 ID 테이블을 늘려두세요
 YT_CHANNEL = {
-    "BTS": "UC3IZKseVpdzPSBaWxBxundA",
+    "BTS": "UCLkAepWjdylmXSltofFvsYQ",
     "BLACKPINK": "UCOmHUn--16B90oW2L6FRR3A",
     "Stray Kids": "UC9rMiEjNaCSsebs31MRDCRA",
     "NewJeans": "UC3SyT4_WLHzN7JmHQwKQZww",
@@ -23,18 +23,37 @@ TW_ID = {
 
 def yt_stats(cid):
     yt = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
-    s = yt.channels().list(part="statistics", id=cid).execute()["items"][0]["statistics"]
-    return int(s["subscriberCount"]), int(s["viewCount"]), int(s["videoCount"])
-
-def insta_followers(user):
-    r = requests.get(f"https://www.instagram.com/{user}/",
-                     headers={"User-Agent": "Mozilla/5.0"})
     try:
-        meta = BeautifulSoup(r.text, "lxml").find("meta", property="og:description")["content"]
-        return meta.split(" Followers")[0]
-    except Exception:
-        return "N/A"
+        res = yt.channels().list(part="statistics", id=cid).execute()
+        print(f"[DEBUG] yt_stats response: {res}")  # ← 결과 확인용
+        s = res["items"][0]["statistics"]
+        return int(s["subscriberCount"]), int(s["viewCount"]), int(s["videoCount"])
+    except Exception as e:
+        print(f"[YOUTUBE ERROR] {cid}: {e}")
+        raise
 
+def insta_followers(username):
+    try:
+        url = f"https://www.instagram.com/{username}/"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        r = requests.get(url, headers=headers, timeout=5)
+
+        if r.status_code != 200:
+            raise Exception(f"status {r.status_code}")
+
+        soup = BeautifulSoup(r.text, 'lxml')
+        meta = soup.find('meta', property='og:description')
+        
+        if not meta or "Followers" not in meta['content']:
+            raise Exception("meta tag missing or unexpected")
+            
+        followers = meta['content'].split(" Followers")[0]
+        return followers
+
+    except Exception as e:
+        print(f"[INSTAGRAM ERROR] {username}: {e}")
+        return "N/A"
+        
 def twitter_followers(user):
     r = requests.get(f"https://twitter.com/{user}",
                      headers={"User-Agent": "Mozilla/5.0"})
