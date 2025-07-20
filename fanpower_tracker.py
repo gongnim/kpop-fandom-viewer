@@ -3,14 +3,18 @@ import requests, pandas as pd
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 
-YOUTUBE_API_KEY = "AIzaSyC15OEAKYC9Oq01osNqW8a_1bQd535Xnxs"
+YOUTUBE_API_KEY = "AIzaSyCb8lNcjZ5yjhhi49-WuPTE0fE3obCFhpU"
 
 # 필요하면 ID 테이블을 늘려두세요
 YT_CHANNEL = {
-    "BTS": "UCLkAepWjdylmXSltofFvsYQ",
+    "BTS": "UCLkAepWjdylmXSltofFvsYQ",  # BANGTANTV
     "BLACKPINK": "UCOmHUn--16B90oW2L6FRR3A",
-    "Stray Kids": "UC9rMiEjNaCSsebs31MRDCRA",
+    "IVE": "UCcvqv1suY0rmjRBAZ0HjpVg",
     "NewJeans": "UC3SyT4_WLHzN7JmHQwKQZww",
+    "ITZY": "UCaO6TYtlC8U5ttz62hTrZgg",
+    "스트레이 키즈": "UC9rMiEjNaCSsebs31MRDCRA",
+    "엔믹스": "UCJh7mYgS-a8pF6H4XLCtV2w",
+    "TWICE": "UCzgxx_DM2Dcb9Y1spb9mUJA"
 }
 IG_ID = {
     "BTS": "bts.bighitofficial", "BLACKPINK": "blackpinkofficial",
@@ -22,16 +26,18 @@ TW_ID = {
 }
 
 def yt_stats(cid):
-    yt = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
     try:
+        yt = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
         res = yt.channels().list(part="statistics", id=cid).execute()
-        print(f"[DEBUG] yt_stats response: {res}")  # ← 결과 확인용
-        s = res["items"][0]["statistics"]
+        items = res.get("items", [])
+        if not items:
+            raise ValueError("Invalid channel ID or private channel")
+        s = items[0]["statistics"]
         return int(s["subscriberCount"]), int(s["viewCount"]), int(s["videoCount"])
     except Exception as e:
-        print(f"[YOUTUBE ERROR] {cid}: {e}")
-        raise
-
+        print(f"[YouTube Error] {cid}: {e}")
+        return "Error", "Error", "Error"
+        
 def insta_followers(username):
     try:
         url = f"https://www.instagram.com/{username}/"
