@@ -105,7 +105,16 @@ def collect(artist_list):
             row.update({"YouTube Subs": "N/A", "YouTube Views": "N/A", "YouTube Videos": "N/A"})
             
         row["TWITTER Followers"] = twitter_link(tid) # twitter_followers(tid) if tid else "N/A"
-        row["INSTAR Followers"] = instagram_link(iid) # insta_followers(iid) if iid else "N/A"
+        
+        # instagram : 팔로워 수 시도 -> 실패 시 링크 대체
+        if iid:
+            insta = insta_followers(iid)
+            if insta == "N/A":
+                insta = instagram_link(iid)
+            row["Instagram"] = insta
+        else:
+            row["Instagram"] = "N/A"
+        
         row["Spotify Listeners"] = spotify_link(a) # spotify_listeners(a)
         rows.append(row)
     return pd.DataFrame(rows)
