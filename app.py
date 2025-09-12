@@ -2,6 +2,7 @@ import streamlit as st
 from database_postgresql import init_db, get_companies, get_listed_companies # Added get_listed_companies
 from scheduler import start_scheduler
 from logger_config import logger
+from config import Config
 
 # Import responsive styles
 try:
@@ -32,6 +33,11 @@ def main():
     # Apply responsive styles
     if RESPONSIVE_STYLES_AVAILABLE:
         st.markdown(get_responsive_css(), unsafe_allow_html=True)
+    
+    # 디버그: 데이터베이스 설정 정보 출력
+    logger.info("=== Database Configuration Debug ===")
+    db_config = Config.debug_config()
+    st.sidebar.info(f"🔧 DB Host: {db_config['host']}:{db_config['port']}")
     
     # 앱 시작 시 데이터베이스 초기화
     init_db()

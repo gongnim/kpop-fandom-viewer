@@ -57,6 +57,17 @@ class Config:
         'password': _get_secret('POSTGRES_PASSWORD', ''),
         'sslmode': _get_secret('POSTGRES_SSLMODE', 'prefer')
     }
+    
+    @classmethod
+    def debug_config(cls):
+        """디버그용: 현재 설정값들을 출력 (비밀번호 제외)"""
+        logger.info(f"DB Host: {cls.DB_CONFIG['host']}")
+        logger.info(f"DB Port: {cls.DB_CONFIG['port']}")
+        logger.info(f"DB Database: {cls.DB_CONFIG['database']}")
+        logger.info(f"DB User: {cls.DB_CONFIG['user']}")
+        logger.info(f"DB Password exists: {bool(cls.DB_CONFIG['password'])}")
+        logger.info(f"DB SSL Mode: {cls.DB_CONFIG['sslmode']}")
+        return cls.DB_CONFIG
 
     @classmethod
     def validate_keys(cls):
