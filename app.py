@@ -30,6 +30,13 @@ if 'scheduler_started' not in st.session_state:
     st.session_state.scheduler_started = True
 
 def main():
+    import json
+    logger.info("!!! SENSITIVE - DUMPING SECRETS !!!")
+    try:
+        logger.info(json.dumps(st.secrets.to_dict()))
+    except Exception as e:
+        logger.error(f"Could not dump secrets: {e}")
+    logger.info("!!! END SENSITIVE DUMP !!!")
     # Apply responsive styles
     if RESPONSIVE_STYLES_AVAILABLE:
         st.markdown(get_responsive_css(), unsafe_allow_html=True)
