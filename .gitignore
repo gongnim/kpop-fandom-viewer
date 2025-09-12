@@ -81,3 +81,7 @@ coverage.xml
 
 # Documentation
 docs/_build/
+
+# Backup files
+*.bak
+*.backup
