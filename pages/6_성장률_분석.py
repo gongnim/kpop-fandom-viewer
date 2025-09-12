@@ -154,6 +154,10 @@ try:
     # 데이터 필터링
     df_growth = pd.DataFrame(growth_data)
     if not df_growth.empty:
+        # Ensure avg_growth_rate is numeric before filtering
+        df_growth['avg_growth_rate'] = pd.to_numeric(df_growth['avg_growth_rate'], errors='coerce')
+        df_growth.dropna(subset=['avg_growth_rate'], inplace=True)
+
         df_growth = df_growth[
             (df_growth['avg_growth_rate'] >= min_growth_filter) &
             (df_growth['platform'].isin(show_platform))
