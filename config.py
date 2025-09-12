@@ -20,17 +20,27 @@ try:
 except ImportError:
     logger.info("dotenv not installed, skipping .env file load. Relying on Streamlit secrets or system environment variables.")
 
-def _get_secret(key: str, default: Any = None) -> Any:
+def _get_secret(key: str, default: Any = None, section: str = None) -> Any:
     """
     Streamlit secrets를 먼저 확인하고, 없으면 환경 변수에서 값을 가져옵니다.
     Streamlit 앱과 백그라운드 스크립트 양쪽에서 모두 동작합니다.
     """
     try:
         import streamlit as st
-        # Streamlit secrets의 키는 소문자일 수 있으므로 소문자로 확인
-        if hasattr(st, 'secrets') and key.lower() in st.secrets:
-            return st.secrets[key.lower()]
-    except (ImportError, Exception):
+        if hasattr(st, 'secrets'):
+            # 섹션별로 접근 시도
+            if section and hasattr(st.secrets, section.lower()):
+                section_secrets = getattr(st.secrets, section.lower())
+                if key.lower() in section_secrets:
+                    return section_secrets[key.lower()]
+            
+            # 루트 레벨에서 직접 접근
+            if key.lower() in st.secrets:
+                return st.secrets[key.lower()]
+            if key.upper() in st.secrets:
+                return st.secrets[key.upper()]
+    except (ImportError, Exception) as e:
+        logger.debug(f"Failed to access Streamlit secrets: {e}")
         # Streamlit 컨텍스트가 아닐 경우 (e.g., scheduler)
         pass
     
@@ -42,11 +52,11 @@ class Config:
     애플리케이션 설정을 관리하는 클래스.
     Streamlit secrets과 환경 변수를 모두 지원하여 유연성을 높입니다.
     """
-    # API Keys
-    YOUTUBE_API_KEY = _get_secret('YOUTUBE_API_KEY')
-    SPOTIFY_CLIENT_ID = _get_secret('SPOTIFY_CLIENT_ID')
-    SPOTIFY_CLIENT_SECRET = _get_secret('SPOTIFY_CLIENT_SECRET')
-    TWITTER_BEARER_TOKEN = _get_secret('TWITTER_BEARER_TOKEN')
+    # API Keys (Platform 섹션에서 우선 검색, 없으면 루트에서 검색)
+    YOUTUBE_API_KEY = _get_secret('YOUTUBE_API_KEY', section='Platform') or _get_secret('YOUTUBE_API_KEY')
+    SPOTIFY_CLIENT_ID = _get_secret('SPOTIFY_CLIENT_ID', section='Platform') or _get_secret('SPOTIFY_CLIENT_ID')
+    SPOTIFY_CLIENT_SECRET = _get_secret('SPOTIFY_CLIENT_SECRET', section='Platform') or _get_secret('SPOTIFY_CLIENT_SECRET')
+    TWITTER_BEARER_TOKEN = _get_secret('TWITTER_BEARER_TOKEN', section='Platform') or _get_secret('TWITTER_BEARER_TOKEN')
 
     # Database Configuration
     DB_CONFIG = {
