@@ -1,0 +1,4 @@
+[server]
+# Streamlit의 파일 감시 기능에서 제외할 폴더 목록입니다.
+# 가상환경, git, 캐시 등 불필요한 대용량 폴더를 제외하여 inotify 한계 문제를 해결합니다.
+folderWatchBlacklist = ["venv", "env", ".git", "__pycache__", "node_modules", "build", "dist", "logs"]
