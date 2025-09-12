@@ -17,22 +17,22 @@ TWITTER_BEARER_TOKEN = None
 
 try:
     # Directly access secrets for PostgreSQL
-    pg_secrets = st.secrets['postgresql']
+    pg_secrets = st.secrets['PostgreSQL']
     DB_CONFIG = {
-        'host': pg_secrets['postgres_host'],
-        'port': int(pg_secrets['postgres_port']),
-        'database': pg_secrets['postgres_db'],
-        'user': pg_secrets['postgres_user'],
-        'password': pg_secrets['postgres_password'],
-        'sslmode': pg_secrets.get('postgres_sslmode', 'prefer')
+        'host': pg_secrets['POSTGRES_HOST'],
+        'port': int(pg_secrets['POSTGRES_PORT']),
+        'database': pg_secrets['POSTGRES_DB'],
+        'user': pg_secrets['POSTGRES_USER'],
+        'password': pg_secrets['POSTGRES_PASSWORD'],
+        'sslmode': pg_secrets.get('POSTGRES_SSLMODE', 'prefer')
     }
 
     # Directly access secrets for Platform APIs
-    platform_secrets = st.secrets['platform']
-    YOUTUBE_API_KEY = platform_secrets['youtube_api_key']
-    SPOTIFY_CLIENT_ID = platform_secrets['spotify_client_id']
-    SPOTIFY_CLIENT_SECRET = platform_secrets['spotify_client_secret']
-    TWITTER_BEARER_TOKEN = platform_secrets['twitter_bearer_token']
+    platform_secrets = st.secrets['Platform']
+    YOUTUBE_API_KEY = platform_secrets['YOUTUBE_API_KEY']
+    SPOTIFY_CLIENT_ID = platform_secrets['SPOTIFY_CLIENT_ID']
+    SPOTIFY_CLIENT_SECRET = platform_secrets['SPOTIFY_CLIENT_SECRET']
+    TWITTER_BEARER_TOKEN = platform_secrets['TWITTER_BEARER_TOKEN']
 
 except (AttributeError, KeyError) as e:
     logger.error(f"!!! CRITICAL: Failed to read secrets from Streamlit. Error: {e} !!!")
