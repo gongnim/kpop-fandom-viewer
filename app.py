@@ -82,15 +82,31 @@ def main():
     # --- 메인 대시보드 --- #
     st.header("종합 현황")
     
-    col1, col2, col3 = st.columns(3)
+    # Get summary data from the database
+    summary_data = get_main_dashboard_summary()
+    total_artists = summary_data.get('total_artists', 0)
+    total_groups = summary_data.get('total_groups', 0)
+    total_subscribers = summary_data.get('total_subscribers', 0)
+    active_platforms = summary_data.get('active_platforms', 0)
+
+    def format_subscribers(num):
+        if num >= 1_000_000_000:
+            return f"{num / 1_000_000_000:.1f} B"
+        if num >= 1_000_000:
+            return f"{num / 1_000_000:.1f} M"
+        if num >= 1_000:
+            return f"{num / 1_000:.1f} K"
+        return str(num)
+
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        # To-Do: DB에서 실제 데이터 가져오기
-        st.metric("전체 아티스트 수", "0", help="데이터베이스에 등록된 총 아티스트 수")
+        st.metric("전체 아티스트 수", f"{total_artists:,}", help="데이터베이스에 등록된 총 활성 아티스트 수")
     with col2:
-        # To-Do: DB에서 실제 데이터 가져오기
-        st.metric("전체 플랫폼 구독자 합계", "0 M", help="YouTube, Spotify, Twitter 등 모든 플랫폼의 구독자/팔로워 합계")
+        st.metric("전체 그룹 수", f"{total_groups:,}", help="데이터베이스에 등록된 총 그룹 수")
     with col3:
-        st.metric("데이터 수집 상태", "정상", "-5%")
+        st.metric("전체 플랫폼 구독자 합계", format_subscribers(total_subscribers), help="모든 플랫폼의 구독자/팔로워 합계")
+    with col4:
+        st.metric("활성 플랫폼 수", f"{active_platforms}", help="최근 24시간 내 데이터가 수집된 플랫폼 수")
 
     st.markdown("--- ")
     st.markdown("### 📊 페이지 안내")

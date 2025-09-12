@@ -2303,6 +2303,61 @@ class DatabaseManager:
         return get_events_for_group(group_id)
 
 
+def get_main_dashboard_summary() -> Dict[str, int]:
+    """Get summary data for the main dashboard."""
+    summary = {
+        'total_artists': 0, 
+        'total_groups': 0,
+        'total_subscribers': 0,
+        'active_platforms': 0
+    }
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+            # Get total active artists
+            cursor.execute("SELECT COUNT(*) as total_artists FROM artists WHERE is_active = TRUE")
+            artist_result = cursor.fetchone()
+            if artist_result:
+                summary['total_artists'] = artist_result['total_artists']
+
+            # Get total groups
+            cursor.execute("SELECT COUNT(*) as total_groups FROM groups")
+            group_result = cursor.fetchone()
+            if group_result:
+                summary['total_groups'] = group_result['total_groups']
+
+            # Get total subscribers from the pre-calculated view for efficiency
+            cursor.execute("""
+                SELECT SUM(
+                    COALESCE(youtube_subscribers, 0) + 
+                    COALESCE(spotify_monthly_listeners, 0) + 
+                    COALESCE(twitter_followers, 0) + 
+                    COALESCE(instagram_followers, 0) + 
+                    COALESCE(tiktok_followers, 0)
+                ) as total_subscribers
+                FROM v_growth_summary
+            """)
+            subscriber_result = cursor.fetchone()
+            if subscriber_result and subscriber_result['total_subscribers']:
+                summary['total_subscribers'] = int(subscriber_result['total_subscribers'])
+            
+            # Get active platform count (platforms with recent data)
+            cursor.execute("""
+                SELECT COUNT(DISTINCT platform) as active_platforms
+                FROM platform_metrics
+                WHERE collected_at >= NOW() - INTERVAL '1 day'
+            """)
+            platform_result = cursor.fetchone()
+            if platform_result:
+                summary['active_platforms'] = platform_result['active_platforms']
+
+            return summary
+    except Exception as e:
+        logger.error(f"Failed to get main dashboard summary: {e}")
+        return summary
+
+
 # =================================================================================
 # KPI and Executive Dashboard Functions
 # =================================================================================
@@ -2407,7 +2462,7 @@ def get_top_growing_groups(limit=5, days_back=30):
                             COUNT(*) as platform_count
                         FROM group_growth
                         GROUP BY group_id, group_name, company_name
-                        HAVING COUNT(*) >= 1
+                        HAVING SUM(latest_value) > 100000 AND COUNT(*) >= 1
                     )
                     SELECT 
                         group_name,
@@ -2594,7 +2649,7 @@ def get_group_growth_analysis(days_back=30):
                             MAX(aggregated_value) as latest_value,
                             COUNT(*) as data_points
                         FROM group_metrics_aggregated
-                        GROUP BY g.name, c.name, pm.platform, pm.metric_type
+                        GROUP BY group_name, display_name, company_name, platform, metric_type
                         HAVING COUNT(*) >= 2  -- 최소 2개 데이터 포인트 필요
                     ),
                     growth_with_rates AS (
