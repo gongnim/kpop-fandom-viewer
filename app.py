@@ -37,7 +37,7 @@ def main():
     # 디버그: 데이터베이스 설정 정보 출력
     logger.info("=== Database Configuration Debug ===")
     db_config = Config.debug_config()
-    st.sidebar.info(f"🔧 DB Host: {db_config['host']}:{db_config['port']}")
+    # st.sidebar.info(f"🔧 DB Host: {db_config['host']}:{db_config['port']}")
     
     # 앱 시작 시 데이터베이스 초기화
     init_db()
