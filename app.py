@@ -1,5 +1,5 @@
 import streamlit as st
-from database_postgresql import init_db, get_companies, get_listed_companies # Added get_listed_companies
+from database_postgresql import init_db, get_companies, get_listed_companies, get_main_dashboard_summary
 from scheduler import start_scheduler
 from logger_config import logger
 from config import Config
