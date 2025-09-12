@@ -1,0 +1,316 @@
+"""
+경영진 KPI 대시보드
+=================
+
+K-Pop 엔터테인먼트 회사 경영진을 위한 실시간 KPI 대시보드입니다.
+- 실제 데이터베이스 연동
+- 핵심 성과 지표 실시간 모니터링
+- Top 성장 그룹 자동 식별
+- 플랫폼별 성과 요약
+
+Author: Backend Development Team
+Date: 2025-09-11
+"""
+
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import numpy as np
+from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings('ignore')
+
+# Import internal modules
+try:
+    from database_postgresql import (
+        get_executive_kpi_summary, get_top_growing_groups, 
+        get_platform_summary_stats, format_number, calculate_growth_percentage
+    )
+except ImportError as e:
+    st.error(f"모듈 import 오류: {e}")
+    st.stop()
+
+# Page configuration
+st.set_page_config(
+    page_title="경영진 KPI",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS for executive dashboard
+st.markdown("""
+<style>
+    .executive-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    .kpi-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1rem;
+        border-left: 5px solid #2a5298;
+        transition: transform 0.2s ease;
+    }
+    
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .kpi-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+    
+    .kpi-positive { color: #28a745; }
+    .kpi-negative { color: #dc3545; }
+    .kpi-warning { color: #ffc107; }
+    .kpi-neutral { color: #6c757d; }
+    
+    .top-performer-card {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .platform-summary {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+        border-left: 4px solid #17a2b8;
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+    
+    .status-green { background-color: #28a745; }
+    .status-yellow { background-color: #ffc107; }
+    .status-red { background-color: #dc3545; }
+    
+    .dashboard-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .executive-header { padding: 1rem; }
+        .kpi-card { padding: 1rem; }
+        .kpi-value { font-size: 2rem; }
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Main header
+st.markdown("""
+<div class="executive-header">
+    <h1>📊 경영진 KPI 대시보드</h1>
+    <p>K-Pop 엔터테인먼트 종합 성과 모니터링</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Load data
+@st.cache_data(ttl=300)  # 5분 캐싱
+def load_kpi_data():
+    """KPI 데이터 로드"""
+    summary = get_executive_kpi_summary()
+    top_groups = get_top_growing_groups(limit=5)
+    platform_stats = get_platform_summary_stats()
+    return summary, top_groups, platform_stats
+
+try:
+    with st.spinner("📊 실시간 KPI 데이터를 로드하고 있습니다..."):
+        summary_data, top_growing_groups, platform_summary = load_kpi_data()
+        
+    if not summary_data or not summary_data.get('counts'):
+        st.error("⚠️ 데이터를 불러올 수 없습니다. 데이터베이스 연결을 확인해주세요.")
+        st.stop()
+        
+    # 핵심 지표 카드
+    st.markdown("### 📈 핵심 성과 지표")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    counts = summary_data['counts']
+    
+    with col1:
+        total_artists = counts.get('total_artists', 0)
+        st.metric(
+            label="총 아티스트 수", 
+            value=f"{total_artists:,}",
+            delta="활성 관리 중"
+        )
+    
+    with col2:
+        total_groups = counts.get('total_groups', 0)  
+        st.metric(
+            label="활성 그룹 수", 
+            value=f"{total_groups:,}",
+            delta="포트폴리오"
+        )
+        
+    with col3:
+        total_accounts = counts.get('total_accounts', 0)
+        st.metric(
+            label="연동 계정 수", 
+            value=f"{total_accounts:,}",
+            delta="데이터 수집 중"
+        )
+        
+    with col4:
+        total_companies = counts.get('total_companies', 0)
+        st.metric(
+            label="관리 회사 수", 
+            value=f"{total_companies:,}",
+            delta="전체 네트워크"
+        )
+    
+    st.markdown("---")
+    
+    # 플랫폼별 성과 및 Top 그룹 섹션
+    col_left, col_right = st.columns([2, 1])
+    
+    with col_left:
+        st.markdown("### 📱 플랫폼별 성과 현황")
+        
+        if platform_summary:
+            # 플랫폼 성과 차트
+            df_platform = pd.DataFrame(platform_summary)
+            
+            fig = go.Figure()
+            
+            # 현재 총합 막대 차트
+            fig.add_trace(go.Bar(
+                name='현재 팔로워/구독자',
+                x=df_platform['platform'],
+                y=df_platform['current_total'],
+                text=[format_number(x) for x in df_platform['current_total']],
+                textposition='auto',
+                marker_color='#2a5298'
+            ))
+            
+            fig.update_layout(
+                title="플랫폼별 총 팔로워/구독자 수",
+                xaxis_title="플랫폼",
+                yaxis_title="팔로워/구독자 수",
+                height=400,
+                template='plotly_white'
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # 플랫폼별 상세 정보
+            for platform_data in platform_summary:
+                growth_rate = platform_data['growth_rate']
+                growth_class = "kpi-positive" if growth_rate > 0 else "kpi-negative" if growth_rate < -5 else "kpi-neutral"
+                
+                st.markdown(f"""
+                <div class="platform-summary">
+                    <h4>{platform_data['platform'].title()}</h4>
+                    <p><strong>총 {format_number(platform_data['current_total'])}</strong> 팔로워/구독자</p>
+                    <p><strong>{platform_data['active_accounts']}개</strong> 활성 계정</p>
+                    <p>지난주 대비: <span class="{growth_class}"><strong>{growth_rate:+.1f}%</strong></span></p>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("📊 플랫폼 데이터를 수집 중입니다...")
+    
+    with col_right:
+        st.markdown("### 🏆 Top 5 성장 그룹")
+        
+        if top_growing_groups:
+            for i, group in enumerate(top_growing_groups, 1):
+                growth_rate = group['growth_rate']
+                status_class = "status-green" if growth_rate > 10 else "status-yellow" if growth_rate > 0 else "status-red"
+                
+                st.markdown(f"""
+                <div class="top-performer-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div class="status-indicator {status_class}"></div>
+                            <strong>#{i} {group['group_name']}</strong>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.2rem; font-weight: bold;">{growth_rate:+.1f}%</div>
+                            <div style="font-size: 0.9rem; opacity: 0.8;">{group['company_name']}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.9;">
+                        총 {format_number(group['total_followers'])} 팔로워 · {group['platform_count']}개 플랫폼
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("🔍 성장률 데이터를 분석 중입니다...")
+            
+    st.markdown("---")
+    
+    # 추가 인사이트 섹션
+    col_insight1, col_insight2 = st.columns(2)
+    
+    with col_insight1:
+        st.markdown("""
+        <div class="dashboard-section">
+            <h4>💡 핵심 인사이트</h4>
+            <ul>
+                <li><strong>포트폴리오 현황:</strong> {total_groups}개 그룹, {total_artists}명 아티스트 관리</li>
+                <li><strong>데이터 커버리지:</strong> {total_accounts}개 소셜미디어 계정 연동</li>
+                <li><strong>성장률 분석:</strong> 상위 그룹들이 안정적인 성장세 유지</li>
+                <li><strong>플랫폼 다양화:</strong> 다중 플랫폼 전략으로 리스크 분산</li>
+            </ul>
+        </div>
+        """.format(
+            total_groups=total_groups,
+            total_artists=total_artists, 
+            total_accounts=total_accounts
+        ), unsafe_allow_html=True)
+        
+    with col_insight2:
+        st.markdown("""
+        <div class="dashboard-section">
+            <h4>⚠️ 주의사항 및 권고</h4>
+            <ul>
+                <li><strong>데이터 수집:</strong> 모든 계정의 최신 데이터 확보 필요</li>
+                <li><strong>성장률 모니터링:</strong> 주간 단위 성장률 추적 강화</li>
+                <li><strong>플랫폼 확장:</strong> TikTok 등 신규 플랫폼 연동 검토</li>
+                <li><strong>목표 설정:</strong> 그룹별 성과 목표 및 KPI 설정</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # 페이지 하단 정보
+    st.markdown("""
+    <div style="text-align: center; margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <p style="margin: 0; color: #6c757d;">
+            📊 <strong>실시간 데이터</strong> · 
+            🔄 <strong>5분마다 자동 업데이트</strong> · 
+            🎯 <strong>{update_time} 기준</strong>
+        </p>
+    </div>
+    """.format(update_time=datetime.now().strftime("%Y-%m-%d %H:%M")), unsafe_allow_html=True)
+    
+except Exception as e:
+    st.error(f"⚠️ KPI 대시보드 로드 중 오류가 발생했습니다: {e}")
+    st.info("🔧 시스템 관리자에게 문의하거나 잠시 후 다시 시도해주세요.")

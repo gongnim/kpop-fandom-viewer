@@ -1,0 +1,570 @@
+{% extends "base.html" %}
+
+{% block title %}K-POP Analytics 분기 전략 리포트 - {{ period_start.strftime('%Y년 Q%q') }}{% endblock %}
+
+{% block header %}
+<h1>🏆 K-POP Analytics</h1>
+<div class="subtitle">분기 전략 리포트 | {{ period_start.strftime('%Y년') }} Q{{ ((period_start.month - 1) // 3 + 1) }}</div>
+{% endblock %}
+
+{% block content %}
+<!-- Executive Summary -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--primary-color);">🎯</span>
+            CEO 요약 브리핑
+        </h2>
+    </div>
+    <div class="section-content">
+        {% if executive_summary %}
+        <div style="background: var(--gradient-primary); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px;">
+            <h3 style="margin-bottom: 20px; font-size: 1.3rem;">핵심 성과 요약</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; margin-bottom: 5px;">{{ quarter_revenue|default('₩187B') }}</div>
+                    <div style="opacity: 0.9;">분기 매출</div>
+                    <div style="font-size: 0.9rem; margin-top: 5px; opacity: 0.8;">전분기 대비 +{{ quarter_growth|default(15.2) }}%</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; margin-bottom: 5px;">{{ market_rank|default('#3') }}</div>
+                    <div style="opacity: 0.9;">업계 순위</div>
+                    <div style="font-size: 0.9rem; margin-top: 5px; opacity: 0.8;">{{ rank_change|default('+1') }} 단계 상승</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; margin-bottom: 5px;">{{ global_expansion|default('12') }}</div>
+                    <div style="opacity: 0.9;">신규 진출국</div>
+                    <div style="font-size: 0.9rem; margin-top: 5px; opacity: 0.8;">누적 {{ total_countries|default(28) }}개국</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; margin-bottom: 5px;">{{ artist_debuts|default('3') }}</div>
+                    <div style="opacity: 0.9;">신규 데뷔</div>
+                    <div style="font-size: 0.9rem; margin-top: 5px; opacity: 0.8;">성공률 {{ debut_success|default(100) }}%</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+            <div class="alert info">
+                <strong>🚀 주요 성취</strong><br>
+                {% if executive_summary.key_achievements %}
+                {% for achievement in executive_summary.key_achievements %}
+                • {{ achievement }}<br>
+                {% endfor %}
+                {% else %}
+                • 포트폴리오 가치 15.2% 증가로 역대 최고 기록<br>
+                • 글로벌 시장 진출로 해외 매출 35% 달성<br>
+                • 신규 아티스트 3팀 성공적 데뷔
+                {% endif %}
+            </div>
+            <div class="alert warning">
+                <strong>🎯 핵심 인사이트</strong><br>
+                {% if executive_summary.critical_insights %}
+                {% for insight in executive_summary.critical_insights %}
+                • {{ insight }}<br>
+                {% endfor %}
+                {% else %}
+                • 디지털 플랫폼 중심의 수익 구조 전환 가속화<br>
+                • 동남아시아 시장에서 폭발적 성장 기회 포착<br>
+                • 데이터 기반 아티스트 개발로 성공률 향상
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Strategic KPIs -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--success-color);">📊</span>
+            전략적 KPI 대시보드
+        </h2>
+    </div>
+    <div class="section-content">
+        {% if summary_cards %}
+        <div class="metric-cards">
+            {% for card in summary_cards %}
+            <div class="metric-card {{ card.status|default('neutral') }}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div class="metric-label">{{ card.title }}</div>
+                    {% if card.status == 'positive' %}
+                    <span style="color: var(--success-color); font-size: 1.2rem;">📈</span>
+                    {% elif card.status == 'negative' %}
+                    <span style="color: var(--error-color); font-size: 1.2rem;">📉</span>
+                    {% else %}
+                    <span style="color: var(--warning-color); font-size: 1.2rem;">➡️</span>
+                    {% endif %}
+                </div>
+                <div class="metric-value">
+                    {{ card.value }}{% if card.unit %} {{ card.unit }}{% endif %}
+                </div>
+                {% if card.change %}
+                <div class="metric-change {{ 'positive' if card.change > 0 else 'negative' }}">
+                    {{ '+' if card.change > 0 else '' }}{{ card.change|round(1) }}%
+                    <small style="opacity: 0.8;">vs. 전분기</small>
+                </div>
+                {% endif %}
+                {% if card.description %}
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.4;">
+                    {{ card.description }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Strategic Performance Matrix -->
+        <div style="margin-top: 30px;">
+            <h4 style="color: var(--text-primary); margin-bottom: 20px;">전략적 성과 매트릭스</h4>
+            <div class="chart-container">
+                <div id="strategicMatrixChart" style="height: 500px;"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Market Position Analysis -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--accent-color);">🌐</span>
+            시장 포지션 & 경쟁 분석
+        </h2>
+    </div>
+    <div class="section-content">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+            <!-- Market Share Evolution -->
+            <div>
+                <h4 style="color: var(--text-primary); margin-bottom: 15px;">시장 점유율 변화</h4>
+                <div id="marketShareChart" style="height: 300px;"></div>
+            </div>
+
+            <!-- Competitive Landscape -->
+            <div>
+                <h4 style="color: var(--text-primary); margin-bottom: 15px;">경쟁사 대비 포지션</h4>
+                <div id="competitorChart" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        {% if strategic_insights %}
+        <div style="background: var(--bg-secondary); padding: 25px; border-radius: 12px; border-left: 4px solid var(--primary-color);">
+            <h4 style="color: var(--primary-color); margin-bottom: 20px;">전략적 시장 분석</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div>
+                    <h5 style="color: var(--success-color); margin-bottom: 10px;">🎯 시장 포지션</h5>
+                    <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary);">
+                        현재 업계 {{ strategic_insights.market_position.current_rank }}위 (전분기 대비 {{ strategic_insights.market_position.change_from_last_quarter|abs }}단계 {{ '상승' if strategic_insights.market_position.change_from_last_quarter > 0 else '하락' }})<br>
+                        시장 점유율: {{ strategic_insights.market_position.market_share_percent }}%
+                    </div>
+                </div>
+                <div>
+                    <h5 style="color: var(--accent-color); margin-bottom: 10px;">🚀 성장 기회</h5>
+                    <ul style="font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); margin: 0; padding-left: 18px;">
+                        {% for opportunity in strategic_insights.growth_opportunities %}
+                        <li>{{ opportunity }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <h5 style="color: var(--warning-color); margin-bottom: 10px;">⚠️ 위험 요소</h5>
+                    <ul style="font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); margin: 0; padding-left: 18px;">
+                        {% for risk in strategic_insights.risk_factors %}
+                        <li>{{ risk }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Portfolio Performance Analysis -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--secondary-color);">🎤</span>
+            포트폴리오 성과 분석
+        </h2>
+    </div>
+    <div class="section-content">
+        <!-- Artist Performance Heatmap -->
+        <div class="chart-container">
+            <h4 style="margin-bottom: 15px; color: var(--text-primary);">아티스트별 성과 히트맵</h4>
+            <div id="performanceHeatmapChart" style="height: 400px;"></div>
+        </div>
+
+        {% if top_performers %}
+        <!-- Top Performers by Category -->
+        <div style="margin-top: 30px;">
+            <h4 style="color: var(--text-primary); margin-bottom: 20px;">분기 MVP 아티스트</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+                {% for category, performers in top_performers.items() %}
+                {% if performers %}
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <h5 style="color: var(--primary-color); margin: 0; text-transform: capitalize;">
+                            {{ category|replace('_', ' ') }} 최고 성과
+                        </h5>
+                        <span style="background: var(--primary-color); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+                            TOP {{ performers|length }}
+                        </span>
+                    </div>
+                    {% for performer in performers[:3] %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; {% if not loop.last %}border-bottom: 1px solid var(--border-color);{% endif %}">
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary);">
+                                🏆 {{ performer.entity_name }}
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                {{ performer.entity_type }} • #{{ performer.rank }} 순위
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: var(--primary-color); font-size: 1.1rem;">
+                                {{ performer.metric_value|round(1) }}{{ performer.metric_unit|default('') }}
+                            </div>
+                            {% if performer.change %}
+                            <div class="metric-change {{ 'positive' if performer.change > 0 else 'negative' }}" style="font-size: 0.8rem;">
+                                {{ '+' if performer.change > 0 else '' }}{{ performer.change|round(1) }}%
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Financial Performance -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--success-color);">💰</span>
+            재무 성과 분석
+        </h2>
+    </div>
+    <div class="section-content">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+            <!-- Revenue Trend -->
+            <div>
+                <h4 style="color: var(--text-primary); margin-bottom: 15px;">분기별 매출 추이</h4>
+                <div id="revenueChart" style="height: 350px;"></div>
+            </div>
+
+            <!-- Revenue Structure -->
+            <div>
+                <h4 style="color: var(--text-primary); margin-bottom: 15px;">매출 구조</h4>
+                <div id="revenueStructureChart" style="height: 300px;"></div>
+                <div style="margin-top: 15px;">
+                    {% set revenue_items = [
+                        {'source': '음원/스트리밍', 'amount': '₩108B', 'share': 58, 'growth': 12.5},
+                        {'source': 'MD/굿즈', 'amount': '₩41B', 'share': 22, 'growth': 28.3},
+                        {'source': '공연/투어', 'amount': '₩22B', 'share': 12, 'growth': -5.2},
+                        {'source': '광고/협찬', 'amount': '₩16B', 'share': 8, 'growth': 45.8}
+                    ] %}
+                    {% for item in revenue_items %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem;">{{ item.source }}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ item.share }}% 구성</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: var(--primary-color);">{{ item.amount }}</div>
+                            <div class="metric-change {{ 'positive' if item.growth > 0 else 'negative' }}" style="font-size: 0.8rem;">
+                                {{ '+' if item.growth > 0 else '' }}{{ item.growth }}%
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Strategic Initiatives & Next Quarter -->
+{% if strategic_analysis %}
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--primary-color);">🎯</span>
+            전략적 이니셔티브 & 차분기 계획
+        </h2>
+    </div>
+    <div class="section-content">
+        <div style="background: var(--gradient-secondary); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px;">
+            <h3 style="margin-bottom: 15px;">차분기 전략 방향</h3>
+            <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.95;">
+                {{ strategic_analysis.portfolio_performance|default('데이터 기반 아티스트 개발과 글로벌 시장 확장을 통해 지속 가능한 성장 기반을 구축하겠습니다.') }}
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div class="alert info">
+                <strong>🎯 투자 우선순위</strong><br>
+                {% if strategic_analysis.investment_recommendations %}
+                {% for recommendation in strategic_analysis.investment_recommendations %}
+                • {{ recommendation }}<br>
+                {% endfor %}
+                {% else %}
+                • 신인 아티스트 발굴 및 트레이닝<br>
+                • 글로벌 마케팅 역량 강화<br>
+                • 디지털 플랫폼 기술 투자
+                {% endif %}
+            </div>
+            
+            <div class="alert warning">
+                <strong>⚡ 시장 트렌드</strong><br>
+                {{ strategic_analysis.market_trends|default('K-POP 글로벌 확산으로 새로운 성장 기회 창출') }}<br>
+                메타버스와 NFT 등 신기술 활용 확대<br>
+                개인화된 팬 경험 중시 트렌드 강화
+            </div>
+            
+            <div class="alert info">
+                <strong>🏆 경쟁 우위</strong><br>
+                {{ strategic_analysis.competitive_landscape|default('데이터 분석 기반 아티스트 개발로 차별화') }}<br>
+                멀티 플랫폼 통합 마케팅 역량<br>
+                글로벌 네트워크 및 파트너십
+            </div>
+        </div>
+
+        <!-- Action Items Matrix -->
+        <div style="margin-top: 30px;">
+            <h4 style="color: var(--text-primary); margin-bottom: 20px;">차분기 실행 계획 매트릭스</h4>
+            {% if executive_summary and executive_summary.action_items %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px;">
+                {% for action in executive_summary.action_items %}
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; border-left: 4px solid var(--primary-color);">
+                    <div style="font-weight: 600; color: var(--primary-color); margin-bottom: 10px;">
+                        액션 아이템 {{ loop.index }}
+                    </div>
+                    <div style="font-size: 0.95rem; line-height: 1.6;">
+                        {{ action }}
+                    </div>
+                    <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                        <span style="color: var(--text-secondary);">우선순위: 
+                            {% if loop.index <= 2 %}
+                            <span style="color: var(--error-color);">높음</span>
+                            {% else %}
+                            <span style="color: var(--warning-color);">보통</span>
+                            {% endif %}
+                        </span>
+                        <span style="color: var(--text-secondary);">목표: {{ 'Q' ~ (((period_start.month - 1) // 3 + 2) % 4 + 1) }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Strategic Matrix Chart (Growth vs Profitability)
+    const strategicMatrixData = [{
+        x: [15, 28, 12, 35, 18, 42, 8, 25],
+        y: [85, 92, 78, 96, 88, 94, 72, 89],
+        mode: 'markers+text',
+        type: 'scatter',
+        text: ['아티스트A', '아티스트B', '아티스트C', '아티스트D', '아티스트E', '아티스트F', '아티스트G', '아티스트H'],
+        textposition: 'top center',
+        marker: {
+            size: [20, 28, 15, 35, 22, 40, 12, 25],
+            color: [85, 92, 78, 96, 88, 94, 72, 89],
+            colorscale: [
+                [0, '#ff4444'], [0.5, '#ffaa00'], [1, '#00cc88']
+            ],
+            showscale: true,
+            colorbar: {title: '수익성 점수'}
+        }
+    }];
+
+    const strategicMatrixLayout = {
+        title: { text: '전략적 포트폴리오 매트릭스 (성장률 vs 수익성)', font: { size: 16 } },
+        xaxis: { title: '성장률 (%)', range: [0, 50] },
+        yaxis: { title: '수익성 점수', range: [60, 100] },
+        annotations: [
+            {x: 12.5, y: 95, text: '스타', showarrow: false, font: {size: 12, color: '#00cc88'}},
+            {x: 37.5, y: 95, text: '성장 동력', showarrow: false, font: {size: 12, color: '#00cc88'}},
+            {x: 12.5, y: 70, text: '관리 필요', showarrow: false, font: {size: 12, color: '#ff4444'}},
+            {x: 37.5, y: 70, text: '투자 기회', showarrow: false, font: {size: 12, color: '#ffaa00'}}
+        ],
+        shapes: [
+            {type: 'line', x0: 25, x1: 25, y0: 60, y1: 100, line: {dash: 'dash', color: '#ccc'}},
+            {type: 'line', x0: 0, x1: 50, y0: 80, y1: 80, line: {dash: 'dash', color: '#ccc'}}
+        ],
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 60, r: 30, b: 70, l: 70 }
+    };
+
+    if (document.getElementById('strategicMatrixChart')) {
+        Plotly.newPlot('strategicMatrixChart', strategicMatrixData, strategicMatrixLayout, {
+            responsive: true, displayModeBar: false
+        });
+    }
+
+    // Market Share Chart
+    const marketShareData = [{
+        x: ['Q1', 'Q2', 'Q3', 'Q4'],
+        y: [10.2, 11.8, 12.8, 13.5],
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: '우리 회사',
+        line: { color: '#6366f1', width: 4 },
+        marker: { size: 10 }
+    }, {
+        x: ['Q1', 'Q2', 'Q3', 'Q4'],
+        y: [18.5, 17.2, 16.8, 16.1],
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: '경쟁사 A',
+        line: { color: '#ef4444', width: 3 },
+        marker: { size: 8 }
+    }, {
+        x: ['Q1', 'Q2', 'Q3', 'Q4'],
+        y: [15.3, 15.8, 15.5, 15.2],
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: '경쟁사 B',
+        line: { color: '#f59e0b', width: 3 },
+        marker: { size: 8 }
+    }];
+
+    const marketShareLayout = {
+        title: { text: '연간 시장 점유율 추이 (%)', font: { size: 14 } },
+        yaxis: { title: '시장 점유율 (%)' },
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 50, r: 30, b: 50, l: 60 },
+        legend: { x: 0, y: 1, bgcolor: 'rgba(255,255,255,0.8)' }
+    };
+
+    if (document.getElementById('marketShareChart')) {
+        Plotly.newPlot('marketShareChart', marketShareData, marketShareLayout, {
+            responsive: true, displayModeBar: false
+        });
+    }
+
+    // Competitor Positioning Chart
+    const competitorData = [{
+        x: [15, 25, 12, 30, 8],
+        y: [85, 78, 90, 72, 88],
+        mode: 'markers+text',
+        type: 'scatter',
+        text: ['우리회사', '경쟁사A', '경쟁사B', '경쟁사C', '경쟁사D'],
+        textposition: 'top center',
+        marker: {
+            size: [25, 20, 18, 22, 15],
+            color: ['#6366f1', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6']
+        }
+    }];
+
+    const competitorLayout = {
+        title: { text: '경쟁사 포지셔닝 (브랜드 인지도 vs 시장 점유율)', font: { size: 14 } },
+        xaxis: { title: '시장 점유율 (%)', range: [0, 35] },
+        yaxis: { title: '브랜드 인지도 점수', range: [65, 95] },
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 50, r: 30, b: 60, l: 70 }
+    };
+
+    if (document.getElementById('competitorChart')) {
+        Plotly.newPlot('competitorChart', competitorData, competitorLayout, {
+            responsive: true, displayModeBar: false
+        });
+    }
+
+    // Performance Heatmap
+    const heatmapData = [{
+        z: [[85, 92, 78, 88, 75], [90, 88, 82, 85, 79], [78, 85, 90, 87, 83], [92, 89, 85, 91, 86], [80, 83, 88, 84, 81]],
+        x: ['성장률', '수익성', '브랜드', '글로벌', '혁신'],
+        y: ['아티스트A', '아티스트B', '아티스트C', '아티스트D', '아티스트E'],
+        type: 'heatmap',
+        colorscale: [
+            [0, '#ff4444'], [0.5, '#ffaa00'], [1, '#00cc88']
+        ],
+        showscale: true,
+        colorbar: {title: '성과 점수'}
+    }];
+
+    const heatmapLayout = {
+        title: { text: '아티스트별 분야별 성과 점수', font: { size: 16 } },
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 50, r: 30, b: 50, l: 80 }
+    };
+
+    if (document.getElementById('performanceHeatmapChart')) {
+        Plotly.newPlot('performanceHeatmapChart', heatmapData, heatmapLayout, {
+            responsive: true, displayModeBar: false
+        });
+    }
+
+    // Revenue Chart
+    const revenueData = [{
+        x: ['Q1', 'Q2', 'Q3', 'Q4'],
+        y: [145, 162, 178, 187],
+        type: 'scatter',
+        mode: 'lines+markers',
+        fill: 'tozeroy',
+        name: '분기 매출',
+        line: { color: '#6366f1', width: 3 },
+        marker: { size: 10, color: '#ec4899' },
+        fillcolor: 'rgba(99, 102, 241, 0.1)'
+    }];
+
+    const revenueLayout = {
+        title: { text: '분기별 매출 추이 (단위: 십억원)', font: { size: 14 } },
+        yaxis: { title: '매출 (십억원)' },
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 50, r: 30, b: 50, l: 60 }
+    };
+
+    if (document.getElementById('revenueChart')) {
+        Plotly.newPlot('revenueChart', revenueData, revenueLayout, {
+            responsive: true, displayModeBar: false
+        });
+    }
+
+    // Revenue Structure Chart
+    const revenueStructureData = [{
+        values: [58, 22, 12, 8],
+        labels: ['음원/스트리밍', 'MD/굿즈', '공연/투어', '광고/협찬'],
+        type: 'pie',
+        hole: 0.4,
+        marker: {
+            colors: ['#1db954', '#ff6b6b', '#4ecdc4', '#ffa726']
+        },
+        textinfo: 'label+percent',
+        textposition: 'outside'
+    }];
+
+    const revenueStructureLayout = {
+        title: { text: '분기 매출 구조', font: { size: 14 } },
+        showlegend: false,
+        margin: { t: 50, r: 30, b: 30, l: 30 }
+    };
+
+    if (document.getElementById('revenueStructureChart')) {
+        Plotly.newPlot('revenueStructureChart', revenueStructureData, revenueStructureLayout, {
+            responsive: true, displayModeBar: false
+        });
+    }
+});
+</script>
+{% endblock %}

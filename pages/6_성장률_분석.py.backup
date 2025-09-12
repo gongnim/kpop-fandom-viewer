@@ -1,0 +1,309 @@
+"""
+성장률 분석 페이지
+================
+
+K-Pop 아티스트 및 그룹의 성장률을 다양한 방법으로 분석하고 시각화하는 페이지입니다.
+- 플랫폼별 성장률 비교
+- 시간대별 성장 패턴 분석
+- 통계적 유의성 검증
+- 반응형 차트 및 대시보드
+
+Author: Frontend Development Team
+Date: 2025-09-09
+"""
+
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from datetime import datetime, timedelta
+import numpy as np
+from typing import Dict, List, Any, Optional
+
+# Import internal modules
+try:
+    from database_postgresql import get_all_artists_with_details, get_platform_metrics_history, get_companies
+    from analytics.growth_rate_calculator import GrowthRateCalculator, CalculationMethod, GrowthPeriod, MetricDataPoint
+    from utils.navigation import navigate_to
+    from assets.responsive_styles import get_responsive_css, PageStyles
+except ImportError as e:
+    st.error(f"모듈 import 오류: {e}")
+    # 개발 중에는 에러를 무시하고 계속 진행
+
+# Page configuration
+st.set_page_config(
+    page_title="성장률 분석",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Apply responsive styles
+try:
+    st.markdown(get_responsive_css(), unsafe_allow_html=True)
+    st.markdown(f"<style>{PageStyles.growth_analysis()}</style>", unsafe_allow_html=True)
+except:
+    # Fallback styles if responsive_styles module is not available
+    st.markdown("""
+    <style>
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1.5rem;
+            border-radius: 10px;
+            color: white;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .growth-positive { color: #4CAF50; font-weight: bold; }
+        .growth-negative { color: #f44336; font-weight: bold; }
+        .growth-neutral { color: #FF9800; font-weight: bold; }
+        @media (max-width: 768px) {
+            .metric-card { padding: 1rem; font-size: 0.9rem; }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+def get_growth_color_class(growth_rate: float) -> str:
+    """성장률에 따른 CSS 클래스 반환"""
+    if growth_rate > 5:
+        return "growth-positive"
+    elif growth_rate < -5:
+        return "growth-negative"
+    else:
+        return "growth-neutral"
+
+def format_growth_rate(rate: float) -> str:
+    """성장률을 포맷팅하여 반환"""
+    if rate > 0:
+        return f"+{rate:.2f}%"
+    else:
+        return f"{rate:.2f}%"
+
+def create_growth_trend_chart(df: pd.DataFrame, title: str) -> go.Figure:
+    """성장률 트렌드 차트 생성"""
+    fig = go.Figure()
+    
+# 플랫폼별 차트 생성 (임시 비활성화)    st.info("플랫폼별 차트는 개발 중입니다.")
+            y=platform_data['growth_rate'],
+            mode='lines+markers',
+            name=platform,
+            line=dict(color=colors[i % len(colors)], width=2),
+            marker=dict(size=6)
+        ))
+    
+    fig.update_layout(
+        title=title,
+        xaxis_title="날짜",
+        yaxis_title="성장률 (%)",
+        height=400,
+        template='plotly_white',
+        hovermode='x unified',
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    # 0% 기준선 추가
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+    
+    return fig
+
+def create_platform_comparison_chart(metrics_summary: Dict) -> go.Figure:
+    """플랫폼별 성장률 비교 차트 생성"""
+    platforms = list(metrics_summary.keys())
+    growth_rates = [metrics_summary[p]['avg_growth_rate'] for p in platforms]
+    
+    # 성장률에 따른 색상 설정
+    colors = ['#4CAF50' if rate > 5 else '#f44336' if rate < -5 else '#FF9800' 
+              for rate in growth_rates]
+    
+    fig = go.Figure(data=[
+        go.Bar(
+            x=platforms,
+            y=growth_rates,
+            marker_color=colors,
+            text=[f"{rate:.1f}%" for rate in growth_rates],
+            textposition='auto',
+        )
+    ])
+    
+    fig.update_layout(
+        title="플랫폼별 평균 성장률 비교",
+        xaxis_title="플랫폼",
+        yaxis_title="평균 성장률 (%)",
+        height=400,
+        template='plotly_white'
+    )
+    
+    return fig
+
+def create_growth_heatmap(df: pd.DataFrame) -> go.Figure:
+    """성장률 히트맵 생성"""
+    # 피벗 테이블 생성
+    pivot_df = df.pivot_table(
+        index='platform',
+        columns=df['date'].dt.strftime('%Y-%m'),
+        values='growth_rate',
+        aggfunc='mean'
+    )
+# 히트맵 차트 (임시 비활성화)    st.info("히트맵 차트는 개발 중입니다.")
+        title="월별 플랫폼 성장률 히트맵",
+        xaxis_title="월",
+        yaxis_title="플랫폼",
+        height=400,
+        template='plotly_white'
+    )
+    
+    return fig
+
+# Main page content
+st.title("📈 성장률 분석")
+st.caption("K-Pop 아티스트의 플랫폼별 성장률을 종합적으로 분석합니다")# 분석 단위 선택analysis_unit = st.radio(    "분석 단위 선택",    ["개별 아티스트", "그룹 단위"],    horizontal=True)# 임시로 모든 분석을 아티스트 기반으로 처리artists = get_all_artists_with_details()if artists:    artist_options = {f"{artist["artist_name"]} ({artist["group_name"] or "솔로"})" : artist["artist_id"]                      for artist in artists}    selected_artist_label = st.selectbox(        "분석할 대상 선택",        options=list(artist_options.keys()),        index=0    )    selected_artist_id = artist_options[selected_artist_label]else:    st.error("데이터가 없습니다.")    st.stop()# 플랫폼 선택platform_options = ["YouTube", "Instagram", "TikTok", "Twitter", "Spotify"]selected_platforms = st.multiselect(    "분석할 플랫폼",    platform_options,    default=platform_options[:3])# Main content areaif not selected_platforms:
+# 분석 설정st.info("분석 기능을 로딩 중입니다...")# 임시 플레이스홀더st.warning("성장률 분석 기능은 현재 개발 중입니다.")selected_platforms = ["YouTube", "Instagram", "TikTok"]if not selected_platforms:
+# 상단 메트릭 카드들
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    overall_avg_growth = df['growth_rate'].mean()
+    st.markdown(f"""
+    <div class="metric-card">
+        <h4>📊 전체 평균 성장률</h4>
+# 분석 결과 표시col1, col2, col3, col4 = st.columns(4)# 임시 샘플 데이터로 대체sample_growth_rate = 15.2with col1:    st.metric(        label="전체 평균 성장률",        value=f"+{sample_growth_rate:.1f}%",        delta="전년 동기 대비"    )
+    <div class="metric-card">
+        <h4>📅 분석 기간</h4>
+        <h3>{total_days}일</h3>
+        <p>{start_date.strftime('%Y.%m.%d')} ~ {end_date.strftime('%Y.%m.%d')}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col4:
+    data_quality = df['confidence'].mean()
+    st.markdown(f"""
+    <div class="metric-card">
+        <h4>🎯 데이터 신뢰도</h4>
+        <h3>{data_quality:.1%}</h3>
+        <p>통계적 신뢰수준</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("---")
+
+# 차트 섹션
+col_left, col_right = st.columns([2, 1])
+
+# 데이터 품질 메트릭 (임시 샘플 데이터)    sample_quality = 85.5        with col2:        st.metric(            label="데이터 품질",            value=f"{sample_quality:.1f}%",            delta="신뢰도 지수"        )
+        recent_growth = df[df['date'] >= (end_date - timedelta(days=7))]['growth_rate'].mean()
+        previous_growth = df[df['date'] < (end_date - timedelta(days=7))]['growth_rate'].mean()
+        trend_change = recent_growth - previous_growth
+        
+        if abs(trend_change) > 1:
+            trend_text = "급상승" if trend_change > 0 else "급하락"
+            trend_icon = "🚀" if trend_change > 0 else "📉"
+        else:
+            trend_text = "안정"
+            trend_icon = "📊"
+        
+        st.markdown(f"""
+        <div class="insight-card">
+            <h4>{trend_icon} 최근 트렌드 분석</h4>
+            <p>최근 7일 평균 성장률: <strong>{format_growth_rate(recent_growth)}</strong></p>
+            <p>이전 기간 대비: <strong>{trend_text}</strong> ({format_growth_rate(trend_change)}p)</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with tab2:
+        comparison_chart = create_platform_comparison_chart(metrics_summary)
+        st.plotly_chart(comparison_chart, use_container_width=True)
+        
+        # 플랫폼별 인사이트
+# 성장률 변화 메트릭 (임시 샘플 데이터)    sample_recent_growth = 18.2    sample_previous_growth = 15.7    growth_change = sample_recent_growth - sample_previous_growth        with col3:        st.metric(            label="성장률 변화",            value=f"+{growth_change:.1f}%",            delta="지난주 대비"        )
+        if len(df) > 30:  # 충분한 데이터가 있을 때만 히트맵 표시
+            heatmap_chart = create_growth_heatmap(df)
+            st.plotly_chart(heatmap_chart, use_container_width=True)
+        else:
+            st.info("히트맵 표시를 위해서는 더 많은 데이터가 필요합니다.")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col_right:
+    # 오른쪽 사이드바 - 추가 정보 및 인사이트
+    st.markdown("### 🔍 상세 분석")
+    
+    # 성장률 분포
+    st.markdown("#### 📊 성장률 분포")
+    fig_hist = px.histogram(
+        df, x='growth_rate', 
+        title="성장률 분포",
+        nbins=20,
+        color_discrete_sequence=['#667eea']
+    )
+    fig_hist.update_layout(height=250, showlegend=False)
+    st.plotly_chart(fig_hist, use_container_width=True)
+    
+    # 통계 요약
+    st.markdown("#### 📈 통계 요약")
+    growth_stats = df['growth_rate'].describe()
+    st.dataframe({
+        "통계": ["평균", "표준편차", "최소값", "25%", "50%", "75%", "최대값"],
+        "값": [
+            f"{growth_stats['mean']:.2f}%",
+            f"{growth_stats['std']:.2f}%",
+            f"{growth_stats['min']:.2f}%",
+            f"{growth_stats['25%']:.2f}%",
+            f"{growth_stats['50%']:.2f}%",
+            f"{growth_stats['75%']:.2f}%",
+            f"{growth_stats['max']:.2f}%"
+        ]
+    }, use_container_width=True)
+    
+    # 실시간 알림 섹션
+    st.markdown("#### 🚨 성장률 알림")
+    
+    # 임계값 설정
+    high_growth_threshold = st.slider("높은 성장률 임계값 (%)", 1.0, 10.0, 5.0)
+    low_growth_threshold = st.slider("낮은 성장률 임계값 (%)", -10.0, -1.0, -3.0)
+    
+    # 알림 조건 확인
+    high_growth_days = df[df['growth_rate'] >= high_growth_threshold]
+    low_growth_days = df[df['growth_rate'] <= low_growth_threshold]
+    
+    if not high_growth_days.empty:
+        st.success(f"🚀 높은 성장률 달성: {len(high_growth_days)}일")
+        
+    if not low_growth_days.empty:
+        st.warning(f"📉 낮은 성장률 발생: {len(low_growth_days)}일")
+    
+    if high_growth_days.empty and low_growth_days.empty:
+        st.info("📊 안정적인 성장 패턴을 보이고 있습니다")
+
+# 통계 요약 (임시 샘플 데이터)    st.subheader("📊 통계 요약")    st.info("통계 분석 기능은 개발 중입니다.")
+
+# 데이터 테이블
+display_df_formatted = display_df.copy()
+display_df_formatted['date'] = display_df_formatted['date'].dt.strftime('%Y-%m-%d')
+display_df_formatted['growth_rate'] = display_df_formatted['growth_rate'].apply(lambda x: f"{x:.2f}%")
+display_df_formatted['followers'] = display_df_formatted['followers'].apply(lambda x: f"{x:,}")
+display_df_formatted['confidence'] = display_df_formatted['confidence'].apply(lambda x: f"{x:.1%}")
+
+st.dataframe(
+    display_df_formatted,
+    column_config={
+        "date": "날짜",
+        "platform": "플랫폼",
+        "growth_rate": "성장률",
+        "followers": "팔로워 수",
+        "confidence": "신뢰도"
+    },
+    hide_index=True,
+    use_container_width=True
+# 성장률 분석 (임시 비활성화)    st.subheader("📈 성장률 분석")    st.info("상세 성장률 분석 기능은 개발 중입니다.")
+    <p>💡 더 정확한 분석을 위해서는 더 많은 데이터 포인트가 필요합니다</p>
+    <p>🔄 데이터는 실시간으로 업데이트되며 5분간 캐싱됩니다</p>
+</div>
+""".format(selected_method_label=selected_method_label), unsafe_allow_html=True)

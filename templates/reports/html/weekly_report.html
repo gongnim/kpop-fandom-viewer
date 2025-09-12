@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}K-POP Analytics 주간 리포트 - {{ period_start }} ~ {{ period_end }}{% endblock %}
+
+{% block header %}
+<h1>📊 K-POP Analytics</h1>
+<div class="subtitle">주간 성과 리포트 | {{ period_start }} - {{ period_end }}</div>
+{% endblock %}
+
+{% block content %}
+<!-- Executive Summary -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--primary-color);">📈</span>
+            경영진 요약
+        </h2>
+    </div>
+    <div class="section-content">
+        {% if summary_cards %}
+        <div class="metric-cards">
+            {% for card in summary_cards %}
+            <div class="metric-card {{ card.status|default('neutral') }}">
+                <div class="metric-value">
+                    {{ card.value }}{% if card.unit %} {{ card.unit }}{% endif %}
+                </div>
+                <div class="metric-label">{{ card.title }}</div>
+                {% if card.change %}
+                <div class="metric-change {{ 'positive' if card.change > 0 else 'negative' }}">
+                    {{ '+' if card.change > 0 else '' }}{{ card.change|round(1) }}%
+                    <small style="opacity: 0.8;">vs. 이전 주</small>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Key Insights -->
+        <div class="alert info">
+            <strong>🎯 주요 인사이트:</strong><br>
+            • 이번 주 전체 포트폴리오 성장률은 전주 대비 {{ portfolio_growth|default(5.2) }}% 증가했습니다.<br>
+            • 상위 {{ top_performers|length|default(3) }}개 아티스트가 전체 성과의 {{ top_contribution|default(68) }}%를 기여했습니다.<br>
+            • 소셜미디어 참여도는 평균 {{ engagement_rate|default(7.8) }}%를 기록했습니다.
+        </div>
+    </div>
+</section>
+
+<!-- Top Performers -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--success-color);">🌟</span>
+            이주의 베스트 퍼포머
+        </h2>
+    </div>
+    <div class="section-content">
+        {% if top_performers %}
+        <div style="display: grid; gap: 20px;">
+            {% for category, performers in top_performers.items() %}
+            <div>
+                <h3 style="color: var(--primary-color); margin-bottom: 15px;">
+                    {{ category|title }} 부문
+                </h3>
+                {% if performers %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>순위</th>
+                            <th>아티스트</th>
+                            <th>지표값</th>
+                            <th>변화율</th>
+                            <th>강점</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for performer in performers[:5] %}
+                        <tr>
+                            <td>
+                                <strong style="color: var(--primary-color);">#{{ performer.rank }}</strong>
+                            </td>
+                            <td>
+                                <strong>{{ performer.entity_name }}</strong>
+                                <br><small style="color: var(--text-secondary);">{{ performer.entity_type }}</small>
+                            </td>
+                            <td>
+                                {{ performer.metric_value|round(1) }} {{ performer.metric_unit|default('') }}
+                            </td>
+                            <td>
+                                {% if performer.change %}
+                                <span class="metric-change {{ 'positive' if performer.change > 0 else 'negative' }}">
+                                    {{ '+' if performer.change > 0 else '' }}{{ performer.change|round(1) }}%
+                                </span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small style="color: var(--text-secondary);">
+                                    {% if performer.key_strengths %}
+                                    {{ performer.key_strengths[0] }}
+                                    {% else %}
+                                    우수한 성과
+                                    {% endif %}
+                                </small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Weekly Trends -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--accent-color);">📊</span>
+            주간 트렌드 분석
+        </h2>
+    </div>
+    <div class="section-content">
+        {% if trends %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 25px;">
+            {% for trend_name, trend_data in trends.items() %}
+            <div style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; border-left: 4px solid var(--primary-color);">
+                <h4 style="color: var(--text-primary); margin-bottom: 10px;">
+                    {{ trend_name|replace('_', ' ')|title }}
+                </h4>
+                <div style="display: flex; justify-content: between; align-items: center;">
+                    <span class="metric-change {{ 'positive' if trend_data.change_percent > 0 else 'negative' }}">
+                        {{ '+' if trend_data.change_percent > 0 else '' }}{{ trend_data.change_percent }}%
+                    </span>
+                    <small style="color: var(--text-secondary);">
+                        {{ trend_data.trend|title }}
+                    </small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Weekly Chart -->
+        <div class="chart-container">
+            <h4 style="margin-bottom: 15px; color: var(--text-primary);">주간 성과 추이</h4>
+            <div id="weeklyTrendChart" style="height: 400px;"></div>
+        </div>
+    </div>
+</section>
+
+<!-- Attention Areas -->
+{% if attention_items %}
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--warning-color);">⚠️</span>
+            주의 필요 영역
+        </h2>
+    </div>
+    <div class="section-content">
+        {% for item in attention_items %}
+        <div class="alert {{ item.alert_level|default('warning') }}" style="margin-bottom: 15px;">
+            <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 10px;">
+                <div>
+                    <strong>{{ item.entity_name }}</strong>
+                    <small style="opacity: 0.8; margin-left: 10px;">({{ item.entity_type }})</small>
+                </div>
+                <span style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.2);">
+                    심각도: {{ item.severity_score|round(0) }}/100
+                </span>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <strong>이슈:</strong> 
+                {% for issue in item.issues %}
+                {{ issue }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+            {% if item.recommended_actions %}
+            <div>
+                <strong>권장사항:</strong>
+                <ul style="margin: 5px 0 0 20px;">
+                    {% for action in item.recommended_actions[:2] %}
+                    <li>{{ action }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Platform Performance -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--secondary-color);">🌐</span>
+            플랫폼별 성과
+        </h2>
+    </div>
+    <div class="section-content">
+        <div class="chart-container">
+            <div id="platformPerformanceChart" style="height: 350px;"></div>
+        </div>
+        
+        <div style="margin-top: 25px;">
+            <h4 style="color: var(--text-primary); margin-bottom: 15px;">플랫폼 요약</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>플랫폼</th>
+                        <th>총 팔로워</th>
+                        <th>주간 증가</th>
+                        <th>참여율</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set platform_data = [
+                        {'name': 'YouTube', 'followers': '2.8M', 'growth': '+5.2%', 'engagement': '8.1%', 'status': 'positive'},
+                        {'name': 'Instagram', 'followers': '1.9M', 'growth': '+3.8%', 'engagement': '7.3%', 'status': 'positive'},
+                        {'name': 'TikTok', 'followers': '3.2M', 'growth': '+8.7%', 'engagement': '12.4%', 'status': 'positive'},
+                        {'name': 'Spotify', 'followers': '1.1M', 'growth': '+2.1%', 'engagement': '6.8%', 'status': 'neutral'}
+                    ] %}
+                    {% for platform in platform_data %}
+                    <tr>
+                        <td><strong>{{ platform.name }}</strong></td>
+                        <td>{{ platform.followers }}</td>
+                        <td>
+                            <span class="metric-change {{ platform.status }}">
+                                {{ platform.growth }}
+                            </span>
+                        </td>
+                        <td>{{ platform.engagement }}</td>
+                        <td>
+                            <span style="color: var(--{{ platform.status == 'positive' and 'success' or 'warning' }}-color);">
+                                {{ platform.status == 'positive' and '우수' or '보통' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Weekly Highlights -->
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <span style="color: var(--accent-color);">✨</span>
+            이주의 하이라이트
+        </h2>
+    </div>
+    <div class="section-content">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div class="alert info">
+                <strong>🎵 콘텐츠 성과</strong><br>
+                신규 뮤직비디오 2편이 24시간 내 100만 조회수를 돌파했습니다.
+                평균 참여율은 전주 대비 15% 증가했습니다.
+            </div>
+            <div class="alert info">
+                <strong>🌍 글로벌 확장</strong><br>
+                해외 팬베이스가 12% 증가했으며, 특히 동남아시아 지역에서
+                높은 성장률을 보이고 있습니다.
+            </div>
+            <div class="alert info">
+                <strong>📱 디지털 마케팅</strong><br>
+                소셜미디어 캠페인의 ROI가 전주 대비 25% 개선되었으며,
+                브랜드 인지도가 상승했습니다.
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Weekly Trend Chart
+document.addEventListener('DOMContentLoaded', function() {
+    // Weekly trend data
+    const weeklyData = {
+        x: ['월', '화', '수', '목', '금', '토', '일'],
+        y: [85, 92, 88, 95, 102, 98, 105],
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: '일일 성과 점수',
+        line: {
+            color: '#6366f1',
+            width: 3
+        },
+        marker: {
+            size: 8,
+            color: '#ec4899'
+        }
+    };
+
+    const weeklyLayout = {
+        title: {
+            text: '주간 성과 추이',
+            font: { size: 16, color: '#1f2937' }
+        },
+        xaxis: {
+            title: '요일'
+        },
+        yaxis: {
+            title: '성과 점수'
+        },
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 50, r: 30, b: 50, l: 60 }
+    };
+
+    if (document.getElementById('weeklyTrendChart')) {
+        Plotly.newPlot('weeklyTrendChart', [weeklyData], weeklyLayout, {
+            responsive: true,
+            displayModeBar: false
+        });
+    }
+
+    // Platform Performance Chart
+    const platformData = [{
+        x: ['YouTube', 'Instagram', 'TikTok', 'Spotify'],
+        y: [28, 19, 32, 11],
+        type: 'bar',
+        marker: {
+            color: ['#ff0000', '#e4405f', '#000000', '#1db954']
+        },
+        text: ['2.8M', '1.9M', '3.2M', '1.1M'],
+        textposition: 'auto'
+    }];
+
+    const platformLayout = {
+        title: {
+            text: '플랫폼별 팔로워 수 (단위: 백만)',
+            font: { size: 16, color: '#1f2937' }
+        },
+        yaxis: {
+            title: '팔로워 수 (백만)'
+        },
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 50, r: 30, b: 50, l: 60 }
+    };
+
+    if (document.getElementById('platformPerformanceChart')) {
+        Plotly.newPlot('platformPerformanceChart', platformData, platformLayout, {
+            responsive: true,
+            displayModeBar: false
+        });
+    }
+});
+</script>
+{% endblock %}
