@@ -1,82 +1,73 @@
-import os
+import streamlit as st
 import logging
+import os
 from typing import Any
-from pathlib import Path
 
 # Configure logger
 logger = logging.getLogger(__name__)
 
-# .env 파일의 절대 경로를 찾아서 로드 (로컬 개발 환경용)
-# 이 스크립트 파일의 위치를 기준으로 .env 파일을 찾습니다.
-try:
-    from dotenv import load_dotenv
-    # config.py 파일의 현재 디렉토리를 기준으로 .env 파일 경로를 설정
-    env_path = Path(os.path.dirname(__file__)) / '.env'
-    if env_path.exists():
-        load_dotenv(dotenv_path=env_path, override=True)
-        logger.info(f"Loaded environment variables from {env_path}")
-    else:
-        logger.info(f".env file not found at {env_path}. Relying on Streamlit secrets or system environment variables.")
-except ImportError:
-    logger.info("dotenv not installed, skipping .env file load. Relying on Streamlit secrets or system environment variables.")
+# This new version directly and exclusively uses Streamlit secrets for deployment clarity.
+# It avoids fallbacks to .env or os.getenv to prevent environment confusion on Streamlit Cloud.
 
-def _get_secret(key: str, default: Any = None, section: str = None) -> Any:
-    """
-    Streamlit secrets를 먼저 확인하고, 없으면 환경 변수에서 값을 가져옵니다.
-    Streamlit 앱과 백그라운드 스크립트 양쪽에서 모두 동작합니다.
-    """
-    try:
-        import streamlit as st
-        if hasattr(st, 'secrets'):
-            # 섹션별로 접근 시도
-            if section and hasattr(st.secrets, section.lower()):
-                section_secrets = getattr(st.secrets, section.lower())
-                if key.lower() in section_secrets:
-                    return section_secrets[key.lower()]
-            
-            # 루트 레벨에서 직접 접근
-            if key.lower() in st.secrets:
-                return st.secrets[key.lower()]
-            if key.upper() in st.secrets:
-                return st.secrets[key.upper()]
-    except (ImportError, Exception) as e:
-        logger.debug(f"Failed to access Streamlit secrets: {e}")
-        # Streamlit 컨텍스트가 아닐 경우 (e.g., scheduler)
-        pass
-    
-    # 환경 변수에서 가져오기 (키는 대문자로 가정)
-    return os.getenv(key.upper(), default)
+DB_CONFIG = {}
+YOUTUBE_API_KEY = None
+SPOTIFY_CLIENT_ID = None
+SPOTIFY_CLIENT_SECRET = None
+TWITTER_BEARER_TOKEN = None
+
+try:
+    # Directly access secrets for PostgreSQL
+    pg_secrets = st.secrets['postgresql']
+    DB_CONFIG = {
+        'host': pg_secrets['postgres_host'],
+        'port': int(pg_secrets['postgres_port']),
+        'database': pg_secrets['postgres_db'],
+        'user': pg_secrets['postgres_user'],
+        'password': pg_secrets['postgres_password'],
+        'sslmode': pg_secrets.get('postgres_sslmode', 'prefer')
+    }
+
+    # Directly access secrets for Platform APIs
+    platform_secrets = st.secrets['platform']
+    YOUTUBE_API_KEY = platform_secrets['youtube_api_key']
+    SPOTIFY_CLIENT_ID = platform_secrets['spotify_client_id']
+    SPOTIFY_CLIENT_SECRET = platform_secrets['spotify_client_secret']
+    TWITTER_BEARER_TOKEN = platform_secrets['twitter_bearer_token']
+
+except (AttributeError, KeyError) as e:
+    logger.error(f"!!! CRITICAL: Failed to read secrets from Streamlit. Error: {e} !!!")
+    logger.error("Please ensure secrets are correctly configured in Streamlit Cloud under [postgresql] and [platform] sections.")
+    # Provide fallback for local execution if needed, but this will fail on deployment if secrets are missing.
+    DB_CONFIG = {
+        'host': os.getenv('POSTGRES_HOST', 'localhost'),
+        'port': int(os.getenv('POSTGRES_PORT', 5432)),
+        'database': os.getenv('POSTGRES_DB', 'kpop_dashboard_pg'),
+        'user': os.getenv('POSTGRES_USER', 'kpop_dashboard_user'),
+        'password': os.getenv('POSTGRES_PASSWORD', ''),
+        'sslmode': os.getenv('POSTGRES_SSLMODE', 'prefer')
+    }
+
 
 class Config:
     """
     애플리케이션 설정을 관리하는 클래스.
     Streamlit secrets과 환경 변수를 모두 지원하여 유연성을 높입니다.
     """
-    # API Keys (Platform 섹션에서 우선 검색, 없으면 루트에서 검색)
-    YOUTUBE_API_KEY = _get_secret('YOUTUBE_API_KEY', section='Platform') or _get_secret('YOUTUBE_API_KEY')
-    SPOTIFY_CLIENT_ID = _get_secret('SPOTIFY_CLIENT_ID', section='Platform') or _get_secret('SPOTIFY_CLIENT_ID')
-    SPOTIFY_CLIENT_SECRET = _get_secret('SPOTIFY_CLIENT_SECRET', section='Platform') or _get_secret('SPOTIFY_CLIENT_SECRET')
-    TWITTER_BEARER_TOKEN = _get_secret('TWITTER_BEARER_TOKEN', section='Platform') or _get_secret('TWITTER_BEARER_TOKEN')
-
-    # Database Configuration
-    DB_CONFIG = {
-        'host': _get_secret('POSTGRES_HOST', 'localhost', section='PostgreSQL'),
-        'port': int(_get_secret('POSTGRES_PORT', 5432, section='PostgreSQL')),
-        'database': _get_secret('POSTGRES_DB', 'kpop_dashboard_pg', section='PostgreSQL'),
-        'user': _get_secret('POSTGRES_USER', 'kpop_dashboard_user', section='PostgreSQL'),
-        'password': _get_secret('POSTGRES_PASSWORD', '', section='PostgreSQL'),
-        'sslmode': _get_secret('POSTGRES_SSLMODE', 'prefer', section='PostgreSQL')
-    }
+    YOUTUBE_API_KEY = YOUTUBE_API_KEY
+    SPOTIFY_CLIENT_ID = SPOTIFY_CLIENT_ID
+    SPOTIFY_CLIENT_SECRET = SPOTIFY_CLIENT_SECRET
+    TWITTER_BEARER_TOKEN = TWITTER_BEARER_TOKEN
+    DB_CONFIG = DB_CONFIG
     
     @classmethod
     def debug_config(cls):
         """디버그용: 현재 설정값들을 출력 (비밀번호 제외)"""
-        logger.info(f"DB Host: {cls.DB_CONFIG['host']}")
-        logger.info(f"DB Port: {cls.DB_CONFIG['port']}")
-        logger.info(f"DB Database: {cls.DB_CONFIG['database']}")
-        logger.info(f"DB User: {cls.DB_CONFIG['user']}")
-        logger.info(f"DB Password exists: {bool(cls.DB_CONFIG['password'])}")
-        logger.info(f"DB SSL Mode: {cls.DB_CONFIG['sslmode']}")
+        logger.info(f"DB Host: {cls.DB_CONFIG.get('host')}")
+        logger.info(f"DB Port: {cls.DB_CONFIG.get('port')}")
+        logger.info(f"DB Database: {cls.DB_CONFIG.get('database')}")
+        logger.info(f"DB User: {cls.DB_CONFIG.get('user')}")
+        logger.info(f"DB Password exists: {bool(cls.DB_CONFIG.get('password'))}")
+        logger.info(f"DB SSL Mode: {cls.DB_CONFIG.get('sslmode')}")
         return cls.DB_CONFIG
 
     @classmethod
