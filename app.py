@@ -82,8 +82,12 @@ def main():
     # --- 메인 대시보드 --- #
     st.header("종합 현황")
     
-    # Get summary data from the database
-    summary_data = get_main_dashboard_summary()
+    @st.cache_data(ttl=300) # Cache for 5 minutes
+    def load_dashboard_summary():
+        return get_main_dashboard_summary()
+
+    # Get summary data from the database via cache
+    summary_data = load_dashboard_summary()
     total_artists = summary_data.get('total_artists', 0)
     total_groups = summary_data.get('total_groups', 0)
     total_subscribers = summary_data.get('total_subscribers', 0)
