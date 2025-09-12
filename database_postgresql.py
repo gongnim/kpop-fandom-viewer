@@ -2322,7 +2322,7 @@ def get_main_dashboard_summary() -> Dict[str, int]:
                 summary['total_artists'] = artist_result['total_artists']
 
             # Get total groups
-            cursor.execute("SELECT COUNT(*) as total_groups FROM groups")
+            cursor.execute("SELECT COUNT(*) as total_groups FROM groups WHERE is_active = TRUE")
             group_result = cursor.fetchone()
             if group_result:
                 summary['total_groups'] = group_result['total_groups']
@@ -2346,7 +2346,7 @@ def get_main_dashboard_summary() -> Dict[str, int]:
             cursor.execute("""
                 SELECT COUNT(DISTINCT platform) as active_platforms
                 FROM platform_metrics
-                WHERE collected_at >= NOW() - INTERVAL '1 day'
+                WHERE collected_at >= NOW() - INTERVAL '7 days'
             """)
             platform_result = cursor.fetchone()
             if platform_result:
