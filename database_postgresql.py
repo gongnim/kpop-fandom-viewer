@@ -2375,12 +2375,12 @@ def get_top_growing_groups(limit=5, days_back=30):
                                 PARTITION BY g.group_id, pm.platform, pm.metric_type
                             ) as data_points
                         FROM groups g
-                        JOIN artists a ON g.group_id = a.group_id
-                        JOIN artist_accounts aa ON a.artist_id = aa.artist_id
+                        JOIN artist_accounts aa ON g.group_id = aa.group_id  -- 그룹별 계정 직접 연결
                         JOIN platform_metrics pm ON aa.account_id = pm.account_id
                         JOIN companies c ON g.company_id = c.company_id
                         WHERE pm.collected_at >= NOW() - INTERVAL '%s days'
                             AND pm.value > 0
+                            AND aa.is_active = true  -- 활성 계정만
                     ),
                     group_growth AS (
                         SELECT DISTINCT
@@ -2567,34 +2567,21 @@ def get_group_growth_analysis(days_back=30):
                 cursor.execute("""
                     WITH group_metrics_aggregated AS (
                         SELECT 
-                            COALESCE(g.name, a.name) as group_name,
-                            CASE 
-                                WHEN g.group_id IS NOT NULL THEN g.name
-                                ELSE a.name 
-                            END as display_name,
+                            g.name as group_name,
+                            g.name as display_name,
                             c.name as company_name,
                             pm.platform,
                             pm.metric_type,
                             pm.collected_at,
-                            SUM(pm.value) as aggregated_value  -- 그룹 멤버들의 합계
-                        FROM artists a
-                        LEFT JOIN groups g ON a.group_id = g.group_id
+                            pm.value as aggregated_value  -- 그룹별 통합 계정 값
+                        FROM groups g
                         JOIN companies c ON g.company_id = c.company_id
-                        JOIN artist_accounts aa ON a.artist_id = aa.artist_id
+                        JOIN artist_accounts aa ON g.group_id = aa.group_id  -- 그룹별 계정 연결
                         JOIN platform_metrics pm ON aa.account_id = pm.account_id
                         WHERE pm.collected_at >= NOW() - INTERVAL '%s days'
                             AND pm.value > 0
                             AND pm.metric_type IN ('subscribers', 'followers')
-                            AND g.group_id IS NOT NULL  -- Only include artists with groups
-                        GROUP BY 
-                            COALESCE(g.name, a.name),
-                            g.group_id,
-                            g.name,
-                            a.name,
-                            c.name,
-                            pm.platform,
-                            pm.metric_type,
-                            pm.collected_at
+                            AND aa.is_active = true  -- 활성 계정만
                     ),
                     group_growth_calculation AS (
                         SELECT 
@@ -2607,7 +2594,7 @@ def get_group_growth_analysis(days_back=30):
                             MAX(aggregated_value) as latest_value,
                             COUNT(*) as data_points
                         FROM group_metrics_aggregated
-                        GROUP BY group_name, display_name, company_name, platform, metric_type
+                        GROUP BY g.name, c.name, pm.platform, pm.metric_type
                         HAVING COUNT(*) >= 2  -- 최소 2개 데이터 포인트 필요
                     ),
                     growth_with_rates AS (
@@ -2660,24 +2647,23 @@ def get_platform_growth_comparison_groups():
                             SUM(earliest_value) as earliest_total
                         FROM (
                             SELECT DISTINCT
-                                COALESCE(g.name, a.name) as group_name,
+                                g.name as group_name,
                                 pm.platform,
                                 pm.metric_type,
                                 FIRST_VALUE(pm.value) OVER (
-                                    PARTITION BY a.artist_id, pm.platform, pm.metric_type 
+                                    PARTITION BY g.group_id, pm.platform, pm.metric_type 
                                     ORDER BY pm.collected_at DESC
                                 ) as latest_value,
                                 FIRST_VALUE(pm.value) OVER (
-                                    PARTITION BY a.artist_id, pm.platform, pm.metric_type 
+                                    PARTITION BY g.group_id, pm.platform, pm.metric_type 
                                     ORDER BY pm.collected_at ASC
                                 ) as earliest_value,
-                                a.artist_id,
+                                g.group_id,
                                 COUNT(*) OVER (
-                                    PARTITION BY a.artist_id, pm.platform, pm.metric_type
+                                    PARTITION BY g.group_id, pm.platform, pm.metric_type
                                 ) as data_points
-                            FROM artists a
-                            LEFT JOIN groups g ON a.group_id = g.group_id
-                            JOIN artist_accounts aa ON a.artist_id = aa.artist_id
+                            FROM groups g
+                            JOIN artist_accounts aa ON g.group_id = aa.group_id  -- 그룹별 계정 직접 연결
                             JOIN platform_metrics pm ON aa.account_id = pm.account_id
                             WHERE pm.collected_at >= NOW() - INTERVAL '30 days'
                                 AND pm.value > 0
