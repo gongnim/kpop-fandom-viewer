@@ -2457,21 +2457,21 @@ def get_top_growing_groups(limit=5, days_back=30):
                             group_id,
                             group_name,
                             company_name,
-                            AVG(growth_rate) as avg_growth_rate,
+                            MAX(growth_rate) as max_growth_rate, -- Changed from AVG to MAX
                             SUM(latest_value) as total_followers,
                             COUNT(*) as platform_count
                         FROM group_growth
                         GROUP BY group_id, group_name, company_name
-                        HAVING SUM(latest_value) > 100000 AND COUNT(*) >= 1
+                        HAVING SUM(latest_value) > 100000 AND COUNT(*) >= 2
                     )
                     SELECT 
                         group_name,
                         company_name,
-                        ROUND(avg_growth_rate, 2) as growth_rate,
+                        ROUND(max_growth_rate, 2) as growth_rate, -- Changed to max_growth_rate
                         total_followers,
                         platform_count
                     FROM aggregated_growth
-                    ORDER BY avg_growth_rate DESC
+                    ORDER BY max_growth_rate DESC -- Changed to max_growth_rate
                     LIMIT %s
                 """, (days_back, limit))
                 

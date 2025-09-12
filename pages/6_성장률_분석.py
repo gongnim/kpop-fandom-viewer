@@ -264,7 +264,13 @@ try:
         st.markdown("### 🏆 Top 10 성장 그룹")
         
         if not df_growth.empty:
-            top_groups = df_growth.nlargest(10, 'avg_growth_rate')
+            # 그룹별 최고 성장률을 기준으로 중복 제거 후 상위 10개 선정
+            # 먼저 avg_growth_rate를 기준으로 내림차순 정렬하여, drop_duplicates 시 가장 높은 성장률을 가진 플랫폼이 남도록 함
+            df_growth_sorted = df_growth.sort_values(by='avg_growth_rate', ascending=False)
+            # group_name 기준으로 중복 제거 (가장 높은 성장률을 가진 행이 남음)
+            df_unique_groups = df_growth_sorted.drop_duplicates(subset=['group_name'])
+            
+            top_groups = df_unique_groups.nlargest(10, 'avg_growth_rate')
             
             for i, (_, group) in enumerate(top_groups.iterrows(), 1):
                 growth_rate = group['avg_growth_rate']
