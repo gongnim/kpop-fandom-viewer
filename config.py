@@ -60,12 +60,12 @@ class Config:
 
     # Database Configuration
     DB_CONFIG = {
-        'host': _get_secret('POSTGRES_HOST', 'localhost'),
-        'port': int(_get_secret('POSTGRES_PORT', 5432)),
-        'database': _get_secret('POSTGRES_DB', 'kpop_dashboard_pg'),
-        'user': _get_secret('POSTGRES_USER', 'kpop_dashboard_user'),
-        'password': _get_secret('POSTGRES_PASSWORD', ''),
-        'sslmode': _get_secret('POSTGRES_SSLMODE', 'prefer')
+        'host': _get_secret('POSTGRES_HOST', 'localhost', section='PostgreSQL'),
+        'port': int(_get_secret('POSTGRES_PORT', 5432, section='PostgreSQL')),
+        'database': _get_secret('POSTGRES_DB', 'kpop_dashboard_pg', section='PostgreSQL'),
+        'user': _get_secret('POSTGRES_USER', 'kpop_dashboard_user', section='PostgreSQL'),
+        'password': _get_secret('POSTGRES_PASSWORD', '', section='PostgreSQL'),
+        'sslmode': _get_secret('POSTGRES_SSLMODE', 'prefer', section='PostgreSQL')
     }
     
     @classmethod
