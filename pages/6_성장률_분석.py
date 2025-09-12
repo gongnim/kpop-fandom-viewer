@@ -85,6 +85,7 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
+        color: #28a745;
     }
     
     .platform-comparison {
