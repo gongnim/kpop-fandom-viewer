@@ -95,6 +95,45 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         margin-bottom: 1.5rem;
     }
+    
+    .analysis-info {
+        background: #ffffff;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 1px solid #e9ecef;
+        margin-top: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .analysis-info h4 {
+        color: #495057;
+        margin-bottom: 1rem;
+    }
+    
+    .analysis-info ul {
+        color: #212529;
+        line-height: 1.6;
+    }
+    
+    .analysis-info li {
+        margin-bottom: 0.5rem;
+        color: #212529;
+    }
+    
+    .analysis-info strong {
+        color: #495057;
+    }
+    
+    .analysis-info .note {
+        color: #495057;
+        font-size: 0.9rem;
+        margin-bottom: 0;
+        background-color: #f8f9fa;
+        padding: 0.75rem;
+        border-radius: 6px;
+        border-left: 4px solid #667eea;
+        margin-top: 1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -320,7 +359,7 @@ try:
     
     # 분석 정보
     st.markdown("""
-    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin-top: 2rem;">
+    <div class="analysis-info">
         <h4>📊 분석 정보 (그룹 기준)</h4>
         <ul>
             <li><strong>분석 기준:</strong> 그룹 단위 통합 분석 (멤버들의 지표 합산)</li>
@@ -331,9 +370,9 @@ try:
             <li><strong>필터 조건:</strong> 최소 2개 이상의 데이터 포인트가 있는 그룹만 포함</li>
             <li><strong>솔로 아티스트:</strong> 개별 아티스트는 단일 그룹으로 취급</li>
         </ul>
-        <p style="margin-bottom: 0; font-size: 0.9rem; color: #6c757d;">
+        <div class="note">
             💡 그룹 단위 분석으로 전체적인 트렌드를 더 명확히 파악할 수 있습니다.
-        </p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
