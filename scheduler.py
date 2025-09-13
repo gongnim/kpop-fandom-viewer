@@ -1,7 +1,7 @@
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from database_postgresql import get_all_artist_accounts
-from collectors.youtube_api import YouTubeCollector
+from collectors.youtube_api_enhanced import YouTubeCollectorEnhanced as YouTubeCollector
 from collectors.spotify_api import SpotifyCollector
 from collectors.twitter_api import TwitterCollector
 from logger_config import logger
